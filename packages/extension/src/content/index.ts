@@ -1,8 +1,19 @@
 import browser from 'webextension-polyfill';
 import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
+import { mountEditorFrame } from './ui';
 
 console.log('[CF Studio] Content script loaded on:', window.location.href);
+
+const INITIAL_TEMPLATE = `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    return 0;
+}`;
 
 async function pingBackground(): Promise<void> {
   const message: Message<PingPayload> = {
@@ -63,3 +74,4 @@ async function syncProblemData() {
 
 setTimeout(pingBackground, 500);
 setTimeout(syncProblemData, 1000);
+setTimeout(() => mountEditorFrame(INITIAL_TEMPLATE, 'dark'), 1500);

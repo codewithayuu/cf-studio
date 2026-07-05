@@ -4,7 +4,15 @@
   "version": "0.1.0",
   "description": "Power workspace for Codeforces — read, write, test, and submit without leaving the tab.",
   "permissions": ["storage"],
-  "host_permissions": ["https://codeforces.com/*"],
+  "host_permissions": [
+    "https://codeforces.com/*"
+  ],
+  "cross_origin_embedder_policy": {
+    "value": "require-corp"
+  },
+  "cross_origin_opener_policy": {
+    "value": "same-origin"
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

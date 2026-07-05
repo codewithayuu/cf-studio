@@ -1,46 +1,16 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CF Studio Editor</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        background: #1e1e2e;
-        color: #cdd6f4;
-        font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-      }
-      .placeholder {
-        text-align: center;
-        padding: 2rem;
-      }
-      .placeholder h1 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #89b4fa;
-      }
-      .placeholder p {
-        font-size: 0.875rem;
-        color: #6c7086;
-        line-height: 1.5;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="placeholder">
-      <h1>CF Studio Editor Frame</h1>
-      <p>Phase 1 placeholder — Monaco Editor loads in Phase 3.</p>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CF Studio Editor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="editor-container" style="width: 100vw; height: 100vh;"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
 </html>
