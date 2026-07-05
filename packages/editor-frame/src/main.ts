@@ -1,4 +1,5 @@
-import { initMonaco } from './monaco';
+import * as monaco from "monaco-editor";
+import { initMonaco, updateTemplates } from './monaco';
 import type { FrameMessage } from '@cf-studio/shared';
 
 const container = document.getElementById('editor-container');
@@ -14,6 +15,9 @@ window.addEventListener('message', (event) => {
     case 'INIT_EDITOR':
       editor.setModel(monaco.editor.createModel(message.payload.initialCode, 'cpp'));
       monaco.editor.setTheme(message.payload.theme === 'dark' ? 'cf-studio-dark' : 'cf-studio-light');
+      if (message.payload.templates) {
+        updateTemplates(message.payload.templates);
+      }
       break;
     case 'REQUEST_CODE':
       const code = editor.getValue();

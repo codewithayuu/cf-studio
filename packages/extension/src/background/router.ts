@@ -1,10 +1,37 @@
 import browser from 'webextension-polyfill';
 import type { Message, MessageResult, MessageType, MessageData, MessagePayload } from '@cf-studio/shared';
-import { saveProblemData, getProblemData } from '../lib/db';
+import { saveProblemData, getProblemData, getNotes, saveNote, deleteNote, getAllNotes, getTemplates, saveTemplate, deleteTemplate } from '../lib/db';
 import { getSetting, setSetting, getAllSettings } from '../lib/storage';
 import { getProblemMeta } from './api';
 import { runCode } from './executor';
 import { submitCode, pollSubmission } from './submitter';
+import { pushNote as syncNote, removeNote as syncRemoveNote, pushTemplate as syncTemplate, removeTemplate as syncRemoveTemplate } from '../lib/sync';
+import FlexSearch from 'flexsearch';
+
+const NoteIndex = new FlexSearch.Document<{ id: string; body: string; tags: string[] }>({
+  document: { id: 'id', index: ['body', 'tags'] },
+  tokenize: 'forward',
+  cache: true,
+});
+
+let noteIndexBuilt = false;
+
+async function ensureNoteIndex() {
+  if (noteIndexBuilt) return;
+  const all = await getAllNotes();
+  for (const n of all) {
+    NoteIndex.add({ id: n.id, body: n.body, tags: n.tags });
+  }
+  noteIndexBuilt = true;
+}
+
+function rebuildNoteIndex(all: { id: string; body: string; tags: string[] }[]) {
+  NoteIndex.remove({ id: '' } as any);
+  NoteIndex.clear();
+  for (const n of all) {
+    NoteIndex.add(n);
+  }
+}
 
 type MessageHandler<T extends MessageType> = (
   payload: MessagePayload<T>,
@@ -38,6 +65,42 @@ const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
   },
   pollSubmission: async (payload) => {
     return await pollSubmission(payload);
+  },
+  getNotes: async (payload) => {
+    return await getNotes(payload.problemId);
+  },
+  saveNote: async (payload) => {
+    await saveNote(payload.note);
+    NoteIndex.add({ id: payload.note.id, body: payload.note.body, tags: payload.note.tags });
+    syncNote(payload.note);
+  },
+  deleteNote: async (payload) => {
+    await deleteNote(payload.id);
+    NoteIndex.remove(payload.id as any);
+    syncRemoveNote(payload.id);
+  },
+  searchNotes: async (payload) => {
+    await ensureNoteIndex();
+    const results = await NoteIndex.search(payload.query, { enrich: true });
+    const ids = new Set<string>();
+    for (const r of results) {
+      for (const item of r.result) {
+        ids.add(item as string);
+      }
+    }
+    const all = await getAllNotes();
+    return all.filter(n => ids.has(n.id));
+  },
+  getTemplates: async () => {
+    return await getTemplates();
+  },
+  saveTemplate: async (payload) => {
+    await saveTemplate(payload.template);
+    syncTemplate(payload.template);
+  },
+  deleteTemplate: async (payload) => {
+    await deleteTemplate(payload.id);
+    syncRemoveTemplate(payload.id);
   },
 };
 

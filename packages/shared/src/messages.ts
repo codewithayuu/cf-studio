@@ -1,4 +1,4 @@
-import type { Problem, TestCase, UserSettings, SubmitMeta } from './models';
+import type { Problem, TestCase, UserSettings, SubmitMeta, Note, Template } from './models';
 
 export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
@@ -108,6 +108,16 @@ export type PollSubmissionData = {
   memoryConsumed: number | null;
 } | null;
 
+export type GetNotesPayload = { problemId: string };
+export type GetNotesData = Note[];
+export type SaveNotePayload = { note: Note };
+export type DeleteNotePayload = { id: string };
+export type SearchNotesPayload = { query: string };
+export type SearchNotesData = Note[];
+export type GetTemplatesData = Template[];
+export type SaveTemplatePayload = { template: Template };
+export type DeleteTemplatePayload = { id: string };
+
 export type MessageMap = {
   ping: { payload: PingPayload; data: PongData };
   scrapeProblem: { payload: ScrapeProblemPayload; data: ScrapeProblemData };
@@ -120,6 +130,13 @@ export type MessageMap = {
   runCode: { payload: RunCodePayload; data: RunCodeData };
   submitCode: { payload: SubmitCodePayload; data: SubmitCodeData };
   pollSubmission: { payload: PollSubmissionPayload; data: PollSubmissionData };
+  getNotes: { payload: GetNotesPayload; data: GetNotesData };
+  saveNote: { payload: SaveNotePayload; data: void };
+  deleteNote: { payload: DeleteNotePayload; data: void };
+  searchNotes: { payload: SearchNotesPayload; data: SearchNotesData };
+  getTemplates: { payload: Record<string, never>; data: GetTemplatesData };
+  saveTemplate: { payload: SaveTemplatePayload; data: void };
+  deleteTemplate: { payload: DeleteTemplatePayload; data: void };
 };
 
 export type MessageType = keyof MessageMap;

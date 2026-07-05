@@ -1,35 +1,31 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, BrowserTarget } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData } from '@cf-studio/shared';
 import { routeMessage } from './router';
+import { initSync } from '../lib/sync';
 
-const BROWSER: BrowserTarget = process.env.BROWSER as BrowserTarget;
-const SW_START_TIME = Date.now();
+console.log('[CF Studio] Background worker starting');
 
-browser.runtime.onInstalled.addListener((details) => {
-  console.log('[CF Studio] Extension installed:', details.reason);
-});
+initSync();
 
-browser.runtime.onStartup.addListener(() => {
-  console.log('[CF Studio] Browser startup — service worker initialized');
-});
+browser.runtime.onMessage.addListener(
+  (message: unknown, sender: browser.Runtime.MessageSender) => {
+    const msg = message as Message;
 
-browser.runtime.onMessage.addListener((message: Message, sender) => {
-  const tabUrl = sender.tab?.url ?? 'unknown';
-  console.log(`[CF Studio] Background received "${message.type}" from ${message.source} (${tabUrl})`);
+    if (msg.type === 'ping') {
+      const result: MessageResult<PongData> = {
+        id: msg.id,
+        ok: true,
+        data: {
+          pong: true,
+          timestamp: Date.now(),
+          backgroundAlive: true,
+        },
+      };
+      return Promise.resolve(result);
+    }
 
-  if (message.type === 'ping') {
-    return Promise.resolve({
-      id: message.id,
-      ok: true,
-      data: {
-        timestamp: Date.now(),
-        browser: BROWSER,
-        serviceWorkerAge: Date.now() - SW_START_TIME,
-      } as PongData,
-    } as MessageResult<PongData>);
-  }
+    return routeMessage(msg, sender) as Promise<MessageResult>;
+  },
+);
 
-  return routeMessage(message, sender);
-});
-
-console.log('[CF Studio] Background service worker started (browser=' + BROWSER + ')');
+export {};

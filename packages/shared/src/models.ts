@@ -32,6 +32,14 @@ export interface Note {
   updatedAt: number;
 }
 
+export interface Template {
+  id: string;
+  name: string;
+  trigger: string;
+  body: string;
+  updatedAt: number;
+}
+
 export interface SubmissionRecord {
   problemId: string;
   verdict: string;

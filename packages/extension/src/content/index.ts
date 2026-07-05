@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData, SubmitMeta } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData, SubmitMeta, Template } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
 import { mountWorkspace } from './ui';
 import { injectLayoutImprovements, injectProblemMeta } from './inject';
@@ -102,9 +102,14 @@ async function initWorkspace() {
   };
   
   try {
-    const result = await browser.runtime.sendMessage(message) as MessageResult<UserSettings>;
-    if (result.ok && result.data) {
-      const settings = result.data;
+    const [settingsResult, templatesResult] = await Promise.all([
+      browser.runtime.sendMessage(message) as Promise<MessageResult<UserSettings>>,
+      browser.runtime.sendMessage({ id: crypto.randomUUID(), type: 'getTemplates', target: 'background', source: 'content', payload: {} }) as Promise<MessageResult<Template[]>>,
+    ]);
+
+    if (settingsResult.ok && settingsResult.data) {
+      const settings = settingsResult.data;
+      const templates = templatesResult.ok && templatesResult.data ? templatesResult.data : [];
       injectLayoutImprovements(settings);
       
       const url = new URL(window.location.href);
@@ -146,7 +151,7 @@ async function initWorkspace() {
 
         const submitMeta: SubmitMeta = { csrfToken, submitUrl, submittedProblemCode, handle };
         
-        mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index, submitMeta);
+        mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index, submitMeta, templates);
         fetchAndInjectMeta(contestId, index);
       }
     }

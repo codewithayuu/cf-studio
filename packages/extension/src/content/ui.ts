@@ -1,6 +1,9 @@
 import browser from 'webextension-polyfill';
-import type { FrameMessage, UserSettings, Message, SubmitMeta } from '@cf-studio/shared';
+import type { FrameMessage, UserSettings, Message, SubmitMeta, Template } from '@cf-studio/shared';
 import { mountTestcasePanel } from './testcase-panel';
+import { mountNotesPanel } from './notes-panel';
+import { mountTemplatesModal } from './templates-modal';
+import { mountNotebookOverlay } from './notebook-overlay';
 
 const CF_LANGUAGES: Record<number, string> = {
   103: "GNU G++23 14.2 (64 bit, msys2)",
@@ -31,6 +34,7 @@ let currentContestId = 0;
 let currentIndex = '';
 let currentSubmitMeta: SubmitMeta;
 let currentSettings: UserSettings;
+let currentTemplates: Template[] = [];
 
 const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, number> = {
   '50/50': 0.5,
@@ -38,12 +42,13 @@ const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, num
   'editor-heavy': 0.35,
 };
 
-export function mountWorkspace(initialCode: string, settings: UserSettings, contestId: number, index: string, submitMeta: SubmitMeta) {
+export function mountWorkspace(initialCode: string, settings: UserSettings, contestId: number, index: string, submitMeta: SubmitMeta, templates?: Template[]) {
   initialCodeState = initialCode;
   currentContestId = contestId;
   currentIndex = index;
   currentSubmitMeta = submitMeta;
   currentSettings = settings;
+  currentTemplates = templates ?? [];
   currentPreset = settings.layoutPreset;
   currentRatio = settings.layoutRatio || PRESET_RATIOS['50/50'];
   
@@ -161,6 +166,9 @@ function injectStyles() {
       background: #89b4fa;
       color: #1e1e2e;
     }
+    .cf-studio-btn.icon-btn {
+      padding: 6px 8px;
+    }
     .cf-studio-select {
       background: #313244;
       color: #cdd6f4;
@@ -170,11 +178,49 @@ function injectStyles() {
       font-family: monospace;
       font-size: 12px;
       outline: none;
-      margin-left: auto;
     }
     #cf-studio-editor-container {
       flex: 1;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #cf-studio-bottom-panel {
+      height: 200px;
+      border-top: 1px solid #313244;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    #cf-studio-tab-bar {
+      display: flex;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      flex-shrink: 0;
+    }
+    #cf-studio-tab-bar .tab-btn {
+      background: transparent;
+      color: #6c7086;
+      border: none;
+      padding: 6px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: monospace;
+      border-bottom: 2px solid transparent;
+    }
+    #cf-studio-tab-bar .tab-btn.active {
+      color: #89b4fa;
+      border-bottom-color: #89b4fa;
+    }
+    #cf-studio-tab-content {
+      flex: 1;
+      overflow-y: auto;
+    }
+    #cf-studio-tab-content .tab-pane {
+      display: none;
+      height: 100%;
+    }
+    #cf-studio-tab-content .tab-pane.active {
       display: flex;
       flex-direction: column;
     }
@@ -211,6 +257,22 @@ function ensureLayoutDOM() {
     btn.addEventListener('click', () => changePreset(p));
     toolbar.appendChild(btn);
   });
+
+  const templatesBtn = document.createElement('button');
+  templatesBtn.className = 'cf-studio-btn icon-btn';
+  templatesBtn.innerText = 'Templates';
+  templatesBtn.addEventListener('click', () => {
+    mountTemplatesModal();
+  });
+  toolbar.appendChild(templatesBtn);
+
+  const notebookBtn = document.createElement('button');
+  notebookBtn.className = 'cf-studio-btn icon-btn';
+  notebookBtn.innerText = 'Notebook';
+  notebookBtn.addEventListener('click', () => {
+    mountNotebookOverlay();
+  });
+  toolbar.appendChild(notebookBtn);
 
   const langSelect = document.createElement('select');
   langSelect.id = 'cf-lang-select';
@@ -251,12 +313,54 @@ function ensureLayoutDOM() {
   const editorContainer = document.createElement('div');
   editorContainer.id = 'cf-studio-editor-container';
 
-  const testcasesContainer = document.createElement('div');
-  testcasesContainer.id = 'cf-studio-testcases';
+  const bottomPanel = document.createElement('div');
+  bottomPanel.id = 'cf-studio-bottom-panel';
+
+  const tabBar = document.createElement('div');
+  tabBar.id = 'cf-studio-tab-bar';
+
+  const testsTab = document.createElement('button');
+  testsTab.className = 'tab-btn active';
+  testsTab.dataset.tab = 'tests';
+  testsTab.innerText = 'Tests';
+  tabBar.appendChild(testsTab);
+
+  const notesTab = document.createElement('button');
+  notesTab.className = 'tab-btn';
+  notesTab.dataset.tab = 'notes';
+  notesTab.innerText = 'Notes';
+  tabBar.appendChild(notesTab);
+
+  bottomPanel.appendChild(tabBar);
+
+  const tabContent = document.createElement('div');
+  tabContent.id = 'cf-studio-tab-content';
+
+  const testsPane = document.createElement('div');
+  testsPane.id = 'cf-studio-testcases';
+  testsPane.className = 'tab-pane active';
+
+  const notesPane = document.createElement('div');
+  notesPane.id = 'cf-studio-notes';
+  notesPane.className = 'tab-pane';
+
+  tabContent.appendChild(testsPane);
+  tabContent.appendChild(notesPane);
+  bottomPanel.appendChild(tabContent);
+
+  tabBar.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tab-btn') as HTMLButtonElement;
+    if (!btn) return;
+    tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tabContent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('cf-studio-' + btn.dataset.tab);
+    if (target) target.classList.add('active');
+  });
 
   pane.appendChild(toolbar);
   pane.appendChild(editorContainer);
-  pane.appendChild(testcasesContainer);
+  pane.appendChild(bottomPanel);
   shell.appendChild(divider);
   shell.appendChild(pane);
   document.body.appendChild(shell);
@@ -269,7 +373,7 @@ function ensureLayoutDOM() {
     editorFrame.style.border = 'none';
 
     editorFrame.addEventListener('load', () => {
-      const msg: FrameMessage = { source: 'content', type: 'INIT_EDITOR', payload: { theme: 'dark', initialCode: initialCodeState } };
+      const msg: FrameMessage = { source: 'content', type: 'INIT_EDITOR', payload: { theme: 'dark', initialCode: initialCodeState, templates: currentTemplates } };
       editorFrame?.contentWindow?.postMessage(msg, '*');
     });
 
@@ -281,7 +385,8 @@ function ensureLayoutDOM() {
   }
   
   editorContainer.appendChild(editorFrame);
-  mountTestcasePanel(testcasesContainer, currentContestId, currentIndex, currentSubmitMeta);
+  mountTestcasePanel(testsPane, currentContestId, currentIndex, currentSubmitMeta);
+  mountNotesPanel(notesPane, currentContestId, currentIndex);
 
   initDrag(divider);
 }

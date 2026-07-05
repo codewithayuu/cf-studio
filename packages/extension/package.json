@@ -13,6 +13,8 @@
   "dependencies": {
     "@cf-studio/shared": "workspace:*",
     "idb": "^8.0.0",
+    "flexsearch": "^0.7.43",
+    "@supabase/supabase-js": "^2.39.0",
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {

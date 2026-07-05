@@ -4,15 +4,17 @@ import type {
   TestCase,
   Note,
   SubmissionRecord,
+  Template,
 } from "@cf-studio/shared";
 
 const DB_NAME = "cf-studio-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface CFStudioDBSchema {
   problems: Problem;
   testCases: TestCase;
   notes: Note;
+  templates: Template;
   submissions: SubmissionRecord;
 }
 
@@ -34,6 +36,10 @@ export function getDB() {
         if (!db.objectStoreNames.contains("notes")) {
           const store = db.createObjectStore("notes", { keyPath: "id" });
           store.createIndex("byProblem", "problemId");
+          store.createIndex("byUpdatedAt", "updatedAt");
+        }
+        if (!db.objectStoreNames.contains("templates")) {
+          const store = db.createObjectStore("templates", { keyPath: "id" });
           store.createIndex("byUpdatedAt", "updatedAt");
         }
         if (!db.objectStoreNames.contains("submissions")) {
@@ -80,4 +86,39 @@ export async function getProblemData(contestId: number, index: string) {
     problemId,
   );
   return { problem: problem as Problem, testCases: testCases as TestCase[] };
+}
+
+export async function getNotes(problemId: string): Promise<Note[]> {
+  const db = await getDB();
+  return (await db.getAllFromIndex("notes", "byProblem", problemId)) as Note[];
+}
+
+export async function saveNote(note: Note) {
+  const db = await getDB();
+  await db.put("notes", { ...note, updatedAt: Date.now() });
+}
+
+export async function deleteNote(id: string) {
+  const db = await getDB();
+  await db.delete("notes", id);
+}
+
+export async function getAllNotes(): Promise<Note[]> {
+  const db = await getDB();
+  return (await db.getAll("notes")) as Note[];
+}
+
+export async function getTemplates(): Promise<Template[]> {
+  const db = await getDB();
+  return (await db.getAll("templates")) as Template[];
+}
+
+export async function saveTemplate(template: Template) {
+  const db = await getDB();
+  await db.put("templates", { ...template, updatedAt: Date.now() });
+}
+
+export async function deleteTemplate(id: string) {
+  const db = await getDB();
+  await db.delete("templates", id);
 }

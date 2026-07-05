@@ -1,6 +1,8 @@
 import * as monaco from "monaco-editor";
+import type { Template } from "@cf-studio/shared";
 
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+let completionDisposable: monaco.IDisposable | null = null;
 
 export function initMonaco(
   container: HTMLElement,
@@ -41,4 +43,44 @@ export function initMonaco(
   });
 
   return editor;
+}
+
+export function updateTemplates(templates: Template[]) {
+  if (completionDisposable) {
+    completionDisposable.dispose();
+  }
+
+  completionDisposable = monaco.languages.registerCompletionItemProvider("cpp", {
+    triggerCharacters: ["/"],
+    provideCompletionItems: (model, position) => {
+      const textUntilPosition = model.getValueInRange({
+        startLineNumber: position.lineNumber,
+        startColumn: 1,
+        endLineNumber: position.lineNumber,
+        endColumn: position.column,
+      });
+
+      const match = textUntilPosition.match(/\/\s*(\w*)$/);
+      if (!match) return { suggestions: [] };
+
+      const prefix = match[1].toLowerCase();
+      const suggestions = templates
+        .filter((t) => t.trigger.toLowerCase().startsWith(prefix))
+        .map((t) => ({
+          label: `/${t.trigger}`,
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: t.body,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: t.name,
+          range: {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: textUntilPosition.search(/\/\s*\w*$/) + 1,
+            endColumn: position.column,
+          },
+        }));
+
+      return { suggestions };
+    },
+  });
 }
