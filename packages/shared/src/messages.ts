@@ -1,27 +1,4 @@
-import type { Problem, TestCase, UserSettings } from './models';
-
-export type GetProblemMetaPayload = {
-  contestId: number;
-  index: string;
-};
-
-export type GetProblemMetaData = {
-  rating: number | null;
-  tags: string[];
-} | null;
-
-export type RunCodePayload = {
-  code: string;
-  stdin: string;
-};
-
-export type RunCodeData = {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-  wallTime: number;
-  peakMemory: number | null;
-};
+import type { Problem, TestCase, UserSettings, SubmitMeta } from './models';
 
 export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
@@ -80,6 +57,57 @@ export type SetSettingPayload = {
 
 export type GetAllSettingsData = UserSettings;
 
+export type GetProblemMetaPayload = {
+  contestId: number;
+  index: string;
+};
+
+export type GetProblemMetaData = {
+  rating: number | null;
+  tags: string[];
+} | null;
+
+export type RunCodePayload = {
+  code: string;
+  stdin: string;
+};
+
+export type RunCodeData = {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  wallTime: number;
+  peakMemory: number | null;
+};
+
+export type SubmitCodePayload = {
+  actionUrl: string;
+  csrfToken: string;
+  submittedProblemCode: string;
+  programTypeId: number;
+  source: string;
+};
+
+export type SubmitCodeData = {
+  success: boolean;
+  error?: string;
+};
+
+export type PollSubmissionPayload = {
+  handle: string;
+  contestId: number;
+  index: string;
+  minSubmissionId: number;
+};
+
+export type PollSubmissionData = {
+  id: number;
+  verdict: string | null;
+  passedTestCount: number | null;
+  timeConsumed: number | null;
+  memoryConsumed: number | null;
+} | null;
+
 export type MessageMap = {
   ping: { payload: PingPayload; data: PongData };
   scrapeProblem: { payload: ScrapeProblemPayload; data: ScrapeProblemData };
@@ -90,6 +118,8 @@ export type MessageMap = {
   getAllSettings: { payload: Record<string, never>; data: GetAllSettingsData };
   getProblemMeta: { payload: GetProblemMetaPayload; data: GetProblemMetaData };
   runCode: { payload: RunCodePayload; data: RunCodeData };
+  submitCode: { payload: SubmitCodePayload; data: SubmitCodeData };
+  pollSubmission: { payload: PollSubmissionPayload; data: PollSubmissionData };
 };
 
 export type MessageType = keyof MessageMap;

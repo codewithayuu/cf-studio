@@ -4,6 +4,7 @@ import { saveProblemData, getProblemData } from '../lib/db';
 import { getSetting, setSetting, getAllSettings } from '../lib/storage';
 import { getProblemMeta } from './api';
 import { runCode } from './executor';
+import { submitCode, pollSubmission } from './submitter';
 
 type MessageHandler<T extends MessageType> = (
   payload: MessagePayload<T>,
@@ -31,6 +32,12 @@ const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
   },
   runCode: async (payload) => {
     return await runCode(payload);
+  },
+  submitCode: async (payload) => {
+    return await submitCode(payload);
+  },
+  pollSubmission: async (payload) => {
+    return await pollSubmission(payload);
   },
 };
 

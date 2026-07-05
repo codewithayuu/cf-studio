@@ -43,6 +43,13 @@ export interface UserSettings {
   theme: 'dark' | 'light' | 'system';
   layoutPreset: '50/50' | 'statement-heavy' | 'editor-heavy' | 'custom';
   layoutRatio: number;
-  pinnedLanguages: string[];
+  pinnedLanguages: number[];
   proSuggestions: boolean;
+}
+
+export interface SubmitMeta {
+  csrfToken: string;
+  submitUrl: string;
+  submittedProblemCode: string;
+  handle: string;
 }

@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, ScrapeProblemData, RunCodeData, FrameMessage } from '@cf-studio/shared';
+import type { Message, MessageResult, ScrapeProblemData, RunCodeData, FrameMessage, SubmitCodeData, PollSubmissionData, SubmitMeta } from '@cf-studio/shared';
 import { findFirstDivergence } from './diff';
 
 interface TestCaseUIState {
@@ -14,17 +14,23 @@ interface TestCaseUIState {
 
 let testCases: TestCaseUIState[] = [];
 let panelContainer: HTMLElement | null = null;
+let submitMeta: SubmitMeta;
+let baselineSubId = 0;
+let pollInterval: number | null = null;
 
-export async function mountTestcasePanel(container: HTMLElement, contestId: number, index: string) {
+export async function mountTestcasePanel(container: HTMLElement, contestId: number, index: string, meta: SubmitMeta) {
+  submitMeta = meta;
   injectPanelStyles();
   
   panelContainer = container;
   panelContainer.innerHTML = `
     <div id="cf-tc-header">
       <span>Test Cases</span>
+      <span id="cf-submit-status" style="font-size:11px; color:#6c7086; flex:1; text-align:center;"></span>
       <div id="cf-tc-actions">
         <button id="cf-tc-add" class="cf-studio-btn">+ Custom</button>
         <button id="cf-tc-run-all" class="cf-studio-btn primary">Run All</button>
+        <button id="cf-tc-submit" class="cf-studio-btn submit-btn">Submit</button>
       </div>
     </div>
     <div id="cf-tc-list"></div>
@@ -34,6 +40,7 @@ export async function mountTestcasePanel(container: HTMLElement, contestId: numb
   
   document.getElementById('cf-tc-add')?.addEventListener('click', addCustomTestCase);
   document.getElementById('cf-tc-run-all')?.addEventListener('click', runAllTestCases);
+  document.getElementById('cf-tc-submit')?.addEventListener('click', submitCode);
   
   renderTestCases();
 }
@@ -67,6 +74,8 @@ function injectPanelStyles() {
     #cf-tc-actions { display: flex; gap: 8px; }
     .cf-studio-btn.primary { background: #89b4fa; color: #1e1e2e; }
     .cf-studio-btn.primary:disabled { background: #313244; color: #6c7086; cursor: not-allowed; }
+    .cf-studio-btn.submit-btn { background: #a6e3a1; color: #1e1e2e; }
+    .cf-studio-btn.submit-btn:disabled { background: #313244; color: #6c7086; cursor: not-allowed; }
     
     #cf-tc-list {
       flex: 1;
@@ -373,4 +382,111 @@ async function runAllTestCases() {
   }
   
   if (runAllBtn) runAllBtn.disabled = false;
+}
+
+async function submitCode() {
+  const submitBtn = document.getElementById('cf-tc-submit') as HTMLButtonElement;
+  const statusEl = document.getElementById('cf-submit-status');
+  
+  if (!submitMeta.handle) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#f38ba8;">Login required</span>`;
+    alert('Please login to Codeforces to submit.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  if (statusEl) statusEl.textContent = 'Submitting...';
+
+  const preCheckMsg: Message = {
+    id: crypto.randomUUID(),
+    type: 'pollSubmission',
+    target: 'background',
+    source: 'content',
+    payload: { handle: submitMeta.handle, contestId: 0, index: '', minSubmissionId: 0 }
+  };
+  try {
+    const preCheckRes = await browser.runtime.sendMessage(preCheckMsg) as MessageResult<PollSubmissionData>;
+    if (preCheckRes.ok && preCheckRes.data) {
+      baselineSubId = preCheckRes.data.id;
+    }
+  } catch (e) { /* ignore */ }
+
+  const code = await getCodeFromFrame();
+  const langSelect = document.getElementById('cf-lang-select') as HTMLSelectElement;
+  const programTypeId = parseInt(langSelect.value, 10);
+
+  const message: Message = {
+    id: crypto.randomUUID(),
+    type: 'submitCode',
+    target: 'background',
+    source: 'content',
+    payload: {
+      actionUrl: submitMeta.submitUrl,
+      csrfToken: submitMeta.csrfToken,
+      submittedProblemCode: submitMeta.submittedProblemCode,
+      programTypeId,
+      source: code
+    }
+  };
+
+  try {
+    const result = await browser.runtime.sendMessage(message) as MessageResult<SubmitCodeData>;
+    if (result.ok && result.data?.success) {
+      if (statusEl) statusEl.textContent = 'Queued...';
+      startPolling();
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:#f38ba8;">Failed</span>`;
+      console.error('[CF Studio] Submit failed:', result.data?.error);
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#f38ba8;">Error</span>`;
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  const statusEl = document.getElementById('cf-submit-status');
+  const contestId = parseInt(window.location.pathname.match(/contest\/(\d+)/)?.[1] || window.location.pathname.split('/')[3] || '0', 10);
+  const index = window.location.pathname.match(/problem\/([A-Z0-9]+)/)?.[1] || '';
+  
+  pollInterval = window.setInterval(async () => {
+    const message: Message = {
+      id: crypto.randomUUID(),
+      type: 'pollSubmission',
+      target: 'background',
+      source: 'content',
+      payload: {
+        handle: submitMeta.handle,
+        contestId,
+        index,
+        minSubmissionId: baselineSubId
+      }
+    };
+    
+    try {
+      const res = await browser.runtime.sendMessage(message) as MessageResult<PollSubmissionData>;
+      if (res.ok && res.data) {
+        const data = res.data;
+        if (data.verdict === 'TESTING' || data.verdict === null) {
+          if (statusEl) statusEl.textContent = `Testing...`;
+        } else {
+          let color = '#a6e3a1';
+          if (data.verdict !== 'OK' && data.verdict !== 'FULL_RESULT') color = '#f38ba8';
+          if (data.verdict === 'COMPILATION_ERROR' || data.verdict === 'CHALLENGED') color = '#f9e2af';
+          
+          const time = (data.timeConsumed || 0);
+          const mem = ((data.memoryConsumed || 0) / 1024 / 1024).toFixed(0);
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="color:${color};font-weight:bold;">${data.verdict}</span> (${data.passedTestCount} tests, ${time}ms, ${mem}MB)`;
+          }
+          if (pollInterval) clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      }
+    } catch (e) {
+      console.error('[CF Studio] Polling error', e);
+    }
+  }, 1500);
 }

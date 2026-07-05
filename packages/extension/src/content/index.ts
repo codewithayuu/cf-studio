@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData, SubmitMeta } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
 import { mountWorkspace } from './ui';
 import { injectLayoutImprovements, injectProblemMeta } from './inject';
@@ -124,7 +124,29 @@ async function initWorkspace() {
       }
       
       if (contestId && index) {
-        mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index);
+        const csrfMeta = document.querySelector('meta[name="X-Csrf-Token"]');
+        const csrfToken = csrfMeta?.getAttribute('content') || '';
+        
+        const handleEl = document.querySelector('.lang a');
+        const handle = handleEl ? (handleEl as HTMLElement).innerText.trim() : '';
+
+        let submitUrl = '';
+        let submittedProblemCode = '';
+        
+        if (url.pathname.startsWith('/problemset/problem/')) {
+          submitUrl = '/problemset/submit?csrf_token=' + csrfToken;
+          submittedProblemCode = `${contestId}${index}`;
+        } else if (url.pathname.includes('/contest/') && url.pathname.includes('/problem/')) {
+          submitUrl = `/contest/${contestId}/submit?csrf_token=` + csrfToken;
+          submittedProblemCode = index;
+        } else if (url.pathname.includes('/gym/') && url.pathname.includes('/problem/')) {
+          submitUrl = `/gym/${contestId}/submit?csrf_token=` + csrfToken;
+          submittedProblemCode = index;
+        }
+
+        const submitMeta: SubmitMeta = { csrfToken, submitUrl, submittedProblemCode, handle };
+        
+        mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index, submitMeta);
         fetchAndInjectMeta(contestId, index);
       }
     }

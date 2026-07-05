@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   theme: 'system',
   layoutPreset: '50/50',
   layoutRatio: 0.5,
-  pinnedLanguages: ['GNU G++23 14.2 (64 bit, msys2)'],
+  pinnedLanguages: [103, 60, 43],
   proSuggestions: false,
 };
 

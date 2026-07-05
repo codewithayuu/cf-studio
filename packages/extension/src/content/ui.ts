@@ -1,6 +1,26 @@
 import browser from 'webextension-polyfill';
-import type { FrameMessage, UserSettings, Message } from '@cf-studio/shared';
+import type { FrameMessage, UserSettings, Message, SubmitMeta } from '@cf-studio/shared';
 import { mountTestcasePanel } from './testcase-panel';
+
+const CF_LANGUAGES: Record<number, string> = {
+  103: "GNU G++23 14.2 (64 bit, msys2)",
+  60: "GNU G++20 13.2.0 (64 bit, winlibs)",
+  43: "GNU G++17 7.3.0",
+  42: "GNU G++17 7.3.0 (64 bit, msys2)",
+  50: "GNU G++14 6.4.0",
+  11: "GNU G++11 5.1.0",
+  44: "Clang++17 Diagnostics",
+  34: "Clang++20 Diagnostics",
+  61: "GNU G++20 13.2.0 (64 bit, winlibs)",
+  1: "GNU G++",
+  54: "PyPy 3.10",
+  3: "Python 3.8.10",
+  36: "PyPy 3.9",
+  31: "Kotlin 1.7.20",
+  48: "Kotlin 1.8.20",
+  32: "Rust 1.70.0",
+  49: "Rust 1.75.0",
+};
 
 let currentRatio = 0.5;
 let currentPreset: UserSettings['layoutPreset'] = '50/50';
@@ -9,6 +29,8 @@ let editorFrame: HTMLIFrameElement | null = null;
 let initialCodeState = '';
 let currentContestId = 0;
 let currentIndex = '';
+let currentSubmitMeta: SubmitMeta;
+let currentSettings: UserSettings;
 
 const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, number> = {
   '50/50': 0.5,
@@ -16,10 +38,12 @@ const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, num
   'editor-heavy': 0.35,
 };
 
-export function mountWorkspace(initialCode: string, settings: UserSettings, contestId: number, index: string) {
+export function mountWorkspace(initialCode: string, settings: UserSettings, contestId: number, index: string, submitMeta: SubmitMeta) {
   initialCodeState = initialCode;
   currentContestId = contestId;
   currentIndex = index;
+  currentSubmitMeta = submitMeta;
+  currentSettings = settings;
   currentPreset = settings.layoutPreset;
   currentRatio = settings.layoutRatio || PRESET_RATIOS['50/50'];
   
@@ -137,6 +161,17 @@ function injectStyles() {
       background: #89b4fa;
       color: #1e1e2e;
     }
+    .cf-studio-select {
+      background: #313244;
+      color: #cdd6f4;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      outline: none;
+      margin-left: auto;
+    }
     #cf-studio-editor-container {
       flex: 1;
       overflow: hidden;
@@ -177,6 +212,42 @@ function ensureLayoutDOM() {
     toolbar.appendChild(btn);
   });
 
+  const langSelect = document.createElement('select');
+  langSelect.id = 'cf-lang-select';
+  langSelect.className = 'cf-studio-select';
+
+  const allLangs = Object.entries(CF_LANGUAGES);
+  const pinnedIds = currentSettings.pinnedLanguages;
+
+  const pinnedLangs = allLangs.filter(([id]) => pinnedIds.includes(Number(id)));
+  const otherLangs = allLangs.filter(([id]) => !pinnedIds.includes(Number(id)));
+
+  if (pinnedLangs.length > 0) {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = 'Pinned';
+    pinnedLangs.forEach(([id, name]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.innerText = name;
+      optgroup.appendChild(opt);
+    });
+    langSelect.appendChild(optgroup);
+  }
+
+  const otherOptgroup = document.createElement('optgroup');
+  otherOptgroup.label = 'Other';
+  otherLangs.forEach(([id, name]) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.innerText = name;
+    otherOptgroup.appendChild(opt);
+  });
+  langSelect.appendChild(otherOptgroup);
+
+  langSelect.value = String(currentSettings.pinnedLanguages[0] || 103);
+
+  toolbar.appendChild(langSelect);
+
   const editorContainer = document.createElement('div');
   editorContainer.id = 'cf-studio-editor-container';
 
@@ -210,7 +281,7 @@ function ensureLayoutDOM() {
   }
   
   editorContainer.appendChild(editorFrame);
-  mountTestcasePanel(testcasesContainer, currentContestId, currentIndex);
+  mountTestcasePanel(testcasesContainer, currentContestId, currentIndex, currentSubmitMeta);
 
   initDrag(divider);
 }
