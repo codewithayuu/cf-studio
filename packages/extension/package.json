@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@cf-studio/shared": "workspace:*",
+    "idb": "^8.0.0",
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {

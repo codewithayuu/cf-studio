@@ -42,6 +42,9 @@ importers:
       '@cf-studio/shared':
         specifier: workspace:*
         version: link:../shared
+      idb:
+        specifier: ^8.0.0
+        version: 8.0.3
       webextension-polyfill:
         specifier: ^0.12.0
         version: 0.12.0
@@ -513,6 +516,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  idb@8.0.3:
+    resolution: {integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -892,6 +898,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  idb@8.0.3: {}
 
   js-tokens@4.0.0: {}
 
