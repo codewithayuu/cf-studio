@@ -15,6 +15,9 @@ export default defineConfig({
       input: resolve(__dirname, 'index.html'),
     },
   },
+  worker: {
+    format: 'es'
+  },
   plugins: [
     monacoEditorPlugin({}),
     {

@@ -4,6 +4,7 @@ import { mountTestcasePanel } from './testcase-panel';
 import { mountNotesPanel } from './notes-panel';
 import { mountTemplatesModal } from './templates-modal';
 import { mountNotebookOverlay } from './notebook-overlay';
+import { mountAnalyticsOverlay } from './analytics-overlay';
 
 const CF_LANGUAGES: Record<number, string> = {
   103: "GNU G++23 14.2 (64 bit, msys2)",
@@ -273,6 +274,18 @@ function ensureLayoutDOM() {
     mountNotebookOverlay();
   });
   toolbar.appendChild(notebookBtn);
+
+  const anBtn = document.createElement('button');
+  anBtn.className = 'cf-studio-btn';
+  anBtn.innerText = 'Analytics';
+  anBtn.addEventListener('click', () => {
+    if (currentSubmitMeta.handle) {
+      mountAnalyticsOverlay(currentSubmitMeta.handle);
+    } else {
+      alert('Login to Codeforces to view analytics.');
+    }
+  });
+  toolbar.appendChild(anBtn);
 
   const langSelect = document.createElement('select');
   langSelect.id = 'cf-lang-select';

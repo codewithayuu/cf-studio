@@ -5,7 +5,7 @@ import type { FrameMessage } from '@cf-studio/shared';
 const container = document.getElementById('editor-container');
 if (!container) throw new Error('Editor container missing');
 
-let editor = initMonaco(container, '// CF Studio initializing...', 'dark');
+let editor = initMonaco(container, '// CF Studio initializing...', 'dark', []);
 
 window.addEventListener('message', (event) => {
   const message = event.data as FrameMessage;

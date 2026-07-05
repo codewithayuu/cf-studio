@@ -40,6 +40,19 @@ export interface Template {
   updatedAt: number;
 }
 
+export interface TopicStrengthData {
+  solved: number;
+  attempted: number;
+  avgRating: number | null;
+}
+
+export interface AnalyticsData {
+  totalSolved: number;
+  ratingTrend: Record<string, number>;
+  topicStrength: Record<string, TopicStrengthData>;
+  solvedProblemIds: string[];
+}
+
 export interface SubmissionRecord {
   problemId: string;
   verdict: string;

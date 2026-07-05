@@ -1,4 +1,4 @@
-import type { Problem, TestCase, UserSettings, SubmitMeta, Note, Template } from './models';
+import type { Problem, TestCase, UserSettings, SubmitMeta, Note, Template, AnalyticsData } from './models';
 
 export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
@@ -117,6 +117,9 @@ export type SearchNotesData = Note[];
 export type GetTemplatesData = Template[];
 export type SaveTemplatePayload = { template: Template };
 export type DeleteTemplatePayload = { id: string };
+export type GetAnalyticsPayload = { handle: string };
+export type GetAnalyticsData = AnalyticsData | null;
+export type GetSolvedProblemsData = { solvedIds: string[] };
 
 export type MessageMap = {
   ping: { payload: PingPayload; data: PongData };
@@ -137,6 +140,8 @@ export type MessageMap = {
   getTemplates: { payload: Record<string, never>; data: GetTemplatesData };
   saveTemplate: { payload: SaveTemplatePayload; data: void };
   deleteTemplate: { payload: DeleteTemplatePayload; data: void };
+  getAnalytics: { payload: GetAnalyticsPayload; data: GetAnalyticsData };
+  getSolvedProblems: { payload: Record<string, never>; data: GetSolvedProblemsData };
 };
 
 export type MessageType = keyof MessageMap;

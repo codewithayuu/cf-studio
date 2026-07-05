@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData, SubmitMeta, Template } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData, SubmitMeta, Template, AnalyticsData } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
 import { mountWorkspace } from './ui';
 import { injectLayoutImprovements, injectProblemMeta } from './inject';
@@ -73,7 +73,7 @@ async function syncProblemData() {
   }
 }
 
-async function fetchAndInjectMeta(contestId: number, index: string) {
+async function fetchAndInjectMeta(contestId: number, index: string, handle: string) {
   const message: Message = {
     id: crypto.randomUUID(),
     type: 'getProblemMeta',
@@ -90,6 +90,53 @@ async function fetchAndInjectMeta(contestId: number, index: string) {
   } catch (err) {
     console.error('[CF Studio] ✗ Failed to get problem meta', err);
   }
+
+  if (handle) {
+    const anMsg: Message = {
+      id: crypto.randomUUID(),
+      type: 'getAnalytics',
+      target: 'background',
+      source: 'content',
+      payload: { handle }
+    };
+    
+    try {
+      const anRes = await browser.runtime.sendMessage(anMsg) as MessageResult<AnalyticsData>;
+      if (anRes.ok && anRes.data) {
+        injectSolvedIndicators(new Set(anRes.data.solvedProblemIds));
+      }
+    } catch (err) {
+      console.error('[CF Studio] ✗ Failed to get analytics for solved indicators', err);
+    }
+  }
+}
+
+function injectSolvedIndicators(solvedIds: Set<string>) {
+  document.querySelectorAll('table.problems tbody tr').forEach(tr => {
+    const link = tr.querySelector('a[href*="/problem/"]') as HTMLAnchorElement;
+    if (!link) return;
+    
+    const href = link.getAttribute('href') || '';
+    const parts = href.split('/');
+    
+    let pid = '';
+    if (href.includes('/problemset/problem/')) {
+      pid = `${parts[parts.length - 2]}-${parts[parts.length - 1]}`;
+    } else if (href.includes('/contest/') || href.includes('/gym/')) {
+      const cId = parts[parts.length - 3];
+      const idx = parts[parts.length - 1];
+      pid = `${cId}-${idx}`;
+    }
+    
+    if (pid && solvedIds.has(pid)) {
+      if (tr.querySelector('.cf-solved-check')) return;
+      const check = document.createElement('span');
+      check.className = 'cf-solved-check';
+      check.innerHTML = '✓';
+      check.style.cssText = 'color: #a6e3a1; font-weight: bold; margin-right: 5px;';
+      link.parentElement?.insertBefore(check, link);
+    }
+  });
 }
 
 async function initWorkspace() {
@@ -152,7 +199,7 @@ async function initWorkspace() {
         const submitMeta: SubmitMeta = { csrfToken, submitUrl, submittedProblemCode, handle };
         
         mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index, submitMeta, templates);
-        fetchAndInjectMeta(contestId, index);
+        fetchAndInjectMeta(contestId, index, handle);
       }
     }
   } catch (err) {

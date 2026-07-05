@@ -2,7 +2,7 @@ import browser from 'webextension-polyfill';
 import type { Message, MessageResult, MessageType, MessageData, MessagePayload } from '@cf-studio/shared';
 import { saveProblemData, getProblemData, getNotes, saveNote, deleteNote, getAllNotes, getTemplates, saveTemplate, deleteTemplate } from '../lib/db';
 import { getSetting, setSetting, getAllSettings } from '../lib/storage';
-import { getProblemMeta } from './api';
+import { getProblemMeta, getAnalytics } from './api';
 import { runCode } from './executor';
 import { submitCode, pollSubmission } from './submitter';
 import { pushNote as syncNote, removeNote as syncRemoveNote, pushTemplate as syncTemplate, removeTemplate as syncRemoveTemplate } from '../lib/sync';
@@ -101,6 +101,12 @@ const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
   deleteTemplate: async (payload) => {
     await deleteTemplate(payload.id);
     syncRemoveTemplate(payload.id);
+  },
+  getAnalytics: async (payload) => {
+    return await getAnalytics(payload.handle);
+  },
+  getSolvedProblems: async () => {
+    return { solvedIds: [] };
   },
 };
 

@@ -95,6 +95,10 @@ export function injectLayoutImprovements(settings: UserSettings) {
       display: inline-block;
     }
     .cf-copy-btn:hover { background: #45475a; }
+    .cf-solved-check {
+      color: #a6e3a1 !important;
+      font-weight: bold;
+    }
   `;
 
   style.textContent = isDark ? darkCss + layoutCss : layoutCss;
