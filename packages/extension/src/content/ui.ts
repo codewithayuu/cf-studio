@@ -1,11 +1,14 @@
 import browser from 'webextension-polyfill';
 import type { FrameMessage, UserSettings, Message } from '@cf-studio/shared';
+import { mountTestcasePanel } from './testcase-panel';
 
 let currentRatio = 0.5;
 let currentPreset: UserSettings['layoutPreset'] = '50/50';
 let isPortraitMode = false;
 let editorFrame: HTMLIFrameElement | null = null;
 let initialCodeState = '';
+let currentContestId = 0;
+let currentIndex = '';
 
 const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, number> = {
   '50/50': 0.5,
@@ -13,27 +16,28 @@ const PRESET_RATIOS: Record<Exclude<UserSettings['layoutPreset'], 'custom'>, num
   'editor-heavy': 0.35,
 };
 
-export function mountWorkspace(initialCode: string, settings: UserSettings) {
+export function mountWorkspace(initialCode: string, settings: UserSettings, contestId: number, index: string) {
   initialCodeState = initialCode;
+  currentContestId = contestId;
+  currentIndex = index;
   currentPreset = settings.layoutPreset;
   currentRatio = settings.layoutRatio || PRESET_RATIOS['50/50'];
   
   isPortraitMode = window.matchMedia('(orientation: portrait)').matches && window.innerWidth < 1024;
 
   injectStyles();
-  rebuildLayoutDOM();
+  ensureLayoutDOM();
+  applyOrientation();
   applyDimension();
 
   window.addEventListener('resize', handleResize);
   window.addEventListener('keydown', handleKeydown);
 
   document.body.classList.add('cf-studio-nav-collapsed');
-  
   let lastScrollY = window.scrollY;
   window.addEventListener('scroll', () => {
     const nav = document.querySelector('.second-level-menu') as HTMLElement;
     if (!nav) return;
-    
     if (window.scrollY > 150 && window.scrollY > lastScrollY) {
       nav.classList.remove('expanded');
     } else if (window.scrollY < lastScrollY) {
@@ -61,7 +65,7 @@ function handleResize() {
   const newIsPortrait = window.matchMedia('(orientation: portrait)').matches && window.innerWidth < 1024;
   if (newIsPortrait !== isPortraitMode) {
     isPortraitMode = newIsPortrait;
-    rebuildLayoutDOM();
+    applyOrientation();
   }
   applyDimension();
 }
@@ -107,6 +111,7 @@ function injectStyles() {
       display: flex;
       flex-direction: column;
       box-shadow: -4px 0 15px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
     #cf-studio-toolbar {
       height: 40px;
@@ -116,6 +121,7 @@ function injectStyles() {
       padding: 0 10px;
       gap: 8px;
       border-bottom: 1px solid #313244;
+      flex-shrink: 0;
     }
     .cf-studio-btn {
       background: #313244;
@@ -134,6 +140,8 @@ function injectStyles() {
     #cf-studio-editor-container {
       flex: 1;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     body.cf-studio-active #page {
       transition: margin 0.2s ease;
@@ -143,12 +151,11 @@ function injectStyles() {
   document.body.classList.add('cf-studio-active');
 }
 
-function rebuildLayoutDOM() {
-  document.getElementById('cf-studio-shell')?.remove();
+function ensureLayoutDOM() {
+  if (document.getElementById('cf-studio-shell')) return;
 
   const shell = document.createElement('div');
   shell.id = 'cf-studio-shell';
-  shell.classList.add(isPortraitMode ? 'portrait' : 'landscape');
 
   const divider = document.createElement('div');
   divider.id = 'cf-studio-divider';
@@ -173,8 +180,12 @@ function rebuildLayoutDOM() {
   const editorContainer = document.createElement('div');
   editorContainer.id = 'cf-studio-editor-container';
 
+  const testcasesContainer = document.createElement('div');
+  testcasesContainer.id = 'cf-studio-testcases';
+
   pane.appendChild(toolbar);
   pane.appendChild(editorContainer);
+  pane.appendChild(testcasesContainer);
   shell.appendChild(divider);
   shell.appendChild(pane);
   document.body.appendChild(shell);
@@ -199,8 +210,16 @@ function rebuildLayoutDOM() {
   }
   
   editorContainer.appendChild(editorFrame);
+  mountTestcasePanel(testcasesContainer, currentContestId, currentIndex);
 
   initDrag(divider);
+}
+
+function applyOrientation() {
+  const shell = document.getElementById('cf-studio-shell');
+  if (!shell) return;
+  shell.classList.remove('portrait', 'landscape');
+  shell.classList.add(isPortraitMode ? 'portrait' : 'landscape');
 }
 
 function changePreset(preset: UserSettings['layoutPreset']) {
@@ -227,7 +246,7 @@ function applyDimension() {
   const shell = document.getElementById('cf-studio-shell');
   if (!shell) return;
 
-  const paneSize = `${currentRatio * 100}vw`;
+  const paneSize = `${currentRatio * 100}v${isPortraitMode ? 'h' : 'w'}`;
   const pageMargin = paneSize;
 
   const page = document.getElementById('page');

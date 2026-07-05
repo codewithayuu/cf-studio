@@ -106,7 +106,6 @@ async function initWorkspace() {
     if (result.ok && result.data) {
       const settings = result.data;
       injectLayoutImprovements(settings);
-      mountWorkspace(INITIAL_TEMPLATE, settings);
       
       const url = new URL(window.location.href);
       const parts = url.pathname.split('/').filter(Boolean);
@@ -125,6 +124,7 @@ async function initWorkspace() {
       }
       
       if (contestId && index) {
+        mountWorkspace(INITIAL_TEMPLATE, settings, contestId, index);
         fetchAndInjectMeta(contestId, index);
       }
     }
