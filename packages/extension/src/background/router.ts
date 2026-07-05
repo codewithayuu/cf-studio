@@ -1,17 +1,11 @@
-import browser from "webextension-polyfill";
-import type {
-  Message,
-  MessageResult,
-  MessageType,
-  MessageData,
-  MessagePayload,
-} from "@cf-studio/shared";
-import { saveProblemData, getProblemData } from "../lib/db";
-import { getSetting, setSetting } from "../lib/storage";
+import browser from 'webextension-polyfill';
+import type { Message, MessageResult, MessageType, MessageData, MessagePayload } from '@cf-studio/shared';
+import { saveProblemData, getProblemData } from '../lib/db';
+import { getSetting, setSetting, getAllSettings } from '../lib/storage';
 
 type MessageHandler<T extends MessageType> = (
   payload: MessagePayload<T>,
-  sender: browser.Runtime.MessageSender,
+  sender: browser.Runtime.MessageSender
 ) => Promise<MessageData<T>>;
 
 const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
@@ -27,15 +21,16 @@ const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
   setSetting: async (payload) => {
     await setSetting(payload.key, payload.value);
   },
+  getAllSettings: async () => {
+    return await getAllSettings();
+  },
 };
 
 export async function routeMessage<T extends MessageType>(
   message: Message<MessagePayload<T>>,
-  sender: browser.Runtime.MessageSender,
+  sender: browser.Runtime.MessageSender
 ): Promise<MessageResult<MessageData<T>>> {
-  const handler = handlers[message.type as MessageType] as
-    | MessageHandler<T>
-    | undefined;
+  const handler = handlers[message.type as MessageType] as MessageHandler<T> | undefined;
 
   if (!handler) {
     return {
@@ -57,7 +52,7 @@ export async function routeMessage<T extends MessageType>(
     return {
       id: message.id,
       ok: false,
-      error: err.message || "Unknown execution error",
+      error: err.message || 'Unknown execution error',
     };
   }
 }

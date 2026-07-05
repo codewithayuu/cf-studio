@@ -1,7 +1,7 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
-import { mountEditorFrame } from './ui';
+import { mountWorkspace } from './ui';
 
 console.log('[CF Studio] Content script loaded on:', window.location.href);
 
@@ -72,6 +72,25 @@ async function syncProblemData() {
   }
 }
 
+async function initWorkspace() {
+  const message: Message = {
+    id: crypto.randomUUID(),
+    type: 'getAllSettings',
+    target: 'background',
+    source: 'content',
+    payload: {}
+  };
+  
+  try {
+    const result = await browser.runtime.sendMessage(message) as MessageResult<UserSettings>;
+    if (result.ok && result.data) {
+      mountWorkspace(INITIAL_TEMPLATE, result.data);
+    }
+  } catch (err) {
+    console.error('[CF Studio] ✗ Failed to get settings', err);
+  }
+}
+
 setTimeout(pingBackground, 500);
 setTimeout(syncProblemData, 1000);
-setTimeout(() => mountEditorFrame(INITIAL_TEMPLATE, 'dark'), 1500);
+setTimeout(initWorkspace, 1500);

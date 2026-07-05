@@ -11,17 +11,17 @@ export interface TestCase {
   problemId: string;
   input: string;
   expectedOutput: string | null;
-  source: "sample" | "custom";
+  source: 'sample' | 'custom';
 }
 
 export type NoteTag =
-  | "observation"
-  | "mistake"
-  | "trick"
-  | "editorial"
-  | "dp-transition"
-  | "graph-pattern"
-  | "revision";
+  | 'observation'
+  | 'mistake'
+  | 'trick'
+  | 'editorial'
+  | 'dp-transition'
+  | 'graph-pattern'
+  | 'revision';
 
 export interface Note {
   id: string;
@@ -40,8 +40,9 @@ export interface SubmissionRecord {
 }
 
 export interface UserSettings {
-  theme: "dark" | "light" | "system";
-  layoutPreset: "50/50" | "statement-heavy" | "editor-heavy";
+  theme: 'dark' | 'light' | 'system';
+  layoutPreset: '50/50' | 'statement-heavy' | 'editor-heavy' | 'custom';
+  layoutRatio: number;
   pinnedLanguages: string[];
   proSuggestions: boolean;
 }

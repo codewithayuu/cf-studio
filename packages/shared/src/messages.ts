@@ -1,6 +1,6 @@
-import type { Problem, TestCase, UserSettings } from "./models";
+import type { Problem, TestCase, UserSettings } from './models';
 
-export type MessageTarget = "background" | "content" | "editor-frame" | "popup";
+export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
 export interface Message<T = unknown> {
   id: string;
@@ -50,24 +50,24 @@ export type GetSettingPayload<K extends keyof UserSettings> = {
 
 export type GetSettingData<K extends keyof UserSettings> = UserSettings[K];
 
-export type SetSettingPayload<K extends keyof UserSettings> = {
-  key: K;
-  value: UserSettings[K];
+export type SetSettingPayload = {
+  key: keyof UserSettings;
+  value: any;
 };
+
+export type GetAllSettingsData = UserSettings;
 
 export type MessageMap = {
   ping: { payload: PingPayload; data: PongData };
   scrapeProblem: { payload: ScrapeProblemPayload; data: ScrapeProblemData };
   saveProblemData: { payload: SaveProblemDataPayload; data: void };
-  getProblemData: {
-    payload: GetProblemDataPayload;
-    data: ScrapeProblemData | null;
-  };
+  getProblemData: { payload: GetProblemDataPayload; data: ScrapeProblemData | null };
   getSetting: { payload: GetSettingPayload<keyof UserSettings>; data: any };
-  setSetting: { payload: SetSettingPayload<keyof UserSettings>; data: void };
+  setSetting: { payload: SetSettingPayload; data: void };
+  getAllSettings: { payload: Record<string, never>; data: GetAllSettingsData };
 };
 
 export type MessageType = keyof MessageMap;
 
-export type MessagePayload<T extends MessageType> = MessageMap[T]["payload"];
-export type MessageData<T extends MessageType> = MessageMap[T]["data"];
+export type MessagePayload<T extends MessageType> = MessageMap[T]['payload'];
+export type MessageData<T extends MessageType> = MessageMap[T]['data'];
