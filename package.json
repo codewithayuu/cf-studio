@@ -1,0 +1,27 @@
+{
+  "name": "cf-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Codeforces Power Workspace — browser extension",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build:editor-frame": "pnpm --filter @cf-studio/editor-frame build",
+    "build:extension:chrome": "pnpm --filter @cf-studio/extension build:chrome",
+    "build:extension:firefox": "pnpm --filter @cf-studio/extension build:firefox",
+    "build:chrome": "pnpm build:editor-frame && pnpm build:extension:chrome",
+    "build:firefox": "pnpm build:editor-frame && pnpm build:extension:firefox",
+    "dev:editor-frame": "pnpm --filter @cf-studio/editor-frame dev",
+    "dev:extension:chrome": "pnpm --filter @cf-studio/extension dev:chrome",
+    "dev:extension:firefox": "pnpm --filter @cf-studio/extension dev:firefox",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf dist .vite"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
