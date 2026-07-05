@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:chrome": "node build.mjs --browser=chrome",
-    "build:firefox": "node build.mjs --browser=firefox",
-    "dev:chrome": "node build.mjs --browser=chrome --watch",
-    "dev:firefox": "node build.mjs --browser=firefox --watch",
+    "build:chrome": "node build.mjs chrome",
+    "build:firefox": "node build.mjs firefox",
+    "dev:chrome": "node build.mjs chrome --watch",
+    "dev:firefox": "node build.mjs firefox --watch",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,7 +15,8 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
-    "@types/webextension-polyfill": "^0.12.1",
+    "@types/node": "^22.0.0",
+    "@types/webextension-polyfill": "^0.12.0",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.0"
   }

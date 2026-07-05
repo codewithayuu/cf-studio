@@ -8,7 +8,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const args = process.argv.slice(2);
 const browserArg = args.find((a) => a.startsWith("--browser="));
-const BROWSER = browserArg ? browserArg.split("=")[1] : "chrome";
+const BROWSER = browserArg
+  ? browserArg.split("=")[1]
+  : args.find((a) => !a.startsWith("--")) ?? "chrome";
 const WATCH = args.includes("--watch");
 
 if (BROWSER !== "chrome" && BROWSER !== "firefox") {
@@ -61,7 +63,7 @@ async function main() {
     ...sharedOptions,
     entryPoints: [resolve(__dirname, "src/background/index.ts")],
     outfile: resolve(OUT_DIR, "background.js"),
-    format: "es",
+    format: "esm",
   });
 
   const contentCtx = await esbuild.context({

@@ -6,6 +6,8 @@ import type {
   BrowserTarget,
 } from "@cf-studio/shared";
 
+declare const process: { env: { BROWSER?: string } };
+
 const BROWSER: BrowserTarget = process.env.BROWSER as BrowserTarget;
 const SW_START_TIME = Date.now();
 
@@ -20,22 +22,23 @@ browser.runtime.onStartup.addListener(() => {
   console.log("[CF Studio] Browser startup — service worker initialized");
 });
 
-browser.runtime.onMessage.addListener((message: Message, sender) => {
+browser.runtime.onMessage.addListener((raw: unknown, sender: browser.Runtime.MessageSender) => {
+  const msg = raw as Message;
   const tabUrl = sender.tab?.url ?? "unknown";
   console.log(
-    `[CF Studio] Background received "${message.type}" from ${message.source} (${tabUrl})`,
+    `[CF Studio] Background received "${msg.type}" from ${msg.source} (${tabUrl})`,
   );
 
-  switch (message.type) {
+  switch (msg.type) {
     case "ping":
-      return handlePing(message);
+      return handlePing(msg);
 
     default:
-      console.warn("[CF Studio] Unknown message type:", message.type);
+      console.warn("[CF Studio] Unknown message type:", msg.type);
       return Promise.resolve({
-        id: message.id,
+        id: msg.id,
         ok: false,
-        error: `Unknown message type: ${message.type}`,
+        error: `Unknown message type: ${msg.type}`,
       } satisfies MessageResult);
   }
 });
