@@ -1,5 +1,15 @@
 import type { Problem, TestCase, UserSettings } from './models';
 
+export type GetProblemMetaPayload = {
+  contestId: number;
+  index: string;
+};
+
+export type GetProblemMetaData = {
+  rating: number | null;
+  tags: string[];
+} | null;
+
 export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
 export interface Message<T = unknown> {
@@ -65,6 +75,7 @@ export type MessageMap = {
   getSetting: { payload: GetSettingPayload<keyof UserSettings>; data: any };
   setSetting: { payload: SetSettingPayload; data: void };
   getAllSettings: { payload: Record<string, never>; data: GetAllSettingsData };
+  getProblemMeta: { payload: GetProblemMetaPayload; data: GetProblemMetaData };
 };
 
 export type MessageType = keyof MessageMap;

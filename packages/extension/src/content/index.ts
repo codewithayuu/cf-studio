@@ -1,7 +1,8 @@
 import browser from 'webextension-polyfill';
-import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings } from '@cf-studio/shared';
+import type { Message, MessageResult, PongData, PingPayload, SaveProblemDataPayload, UserSettings, GetProblemMetaData } from '@cf-studio/shared';
 import { scrapeCurrentPage } from './scraper';
 import { mountWorkspace } from './ui';
+import { injectLayoutImprovements, injectProblemMeta } from './inject';
 
 console.log('[CF Studio] Content script loaded on:', window.location.href);
 
@@ -72,6 +73,25 @@ async function syncProblemData() {
   }
 }
 
+async function fetchAndInjectMeta(contestId: number, index: string) {
+  const message: Message = {
+    id: crypto.randomUUID(),
+    type: 'getProblemMeta',
+    target: 'background',
+    source: 'content',
+    payload: { contestId, index }
+  };
+  
+  try {
+    const result = await browser.runtime.sendMessage(message) as MessageResult<GetProblemMetaData>;
+    if (result.ok && result.data) {
+      injectProblemMeta(contestId, index, result.data.rating, result.data.tags);
+    }
+  } catch (err) {
+    console.error('[CF Studio] ✗ Failed to get problem meta', err);
+  }
+}
+
 async function initWorkspace() {
   const message: Message = {
     id: crypto.randomUUID(),
@@ -84,7 +104,29 @@ async function initWorkspace() {
   try {
     const result = await browser.runtime.sendMessage(message) as MessageResult<UserSettings>;
     if (result.ok && result.data) {
-      mountWorkspace(INITIAL_TEMPLATE, result.data);
+      const settings = result.data;
+      injectLayoutImprovements(settings);
+      mountWorkspace(INITIAL_TEMPLATE, settings);
+      
+      const url = new URL(window.location.href);
+      const parts = url.pathname.split('/').filter(Boolean);
+      let contestId = 0;
+      let index = '';
+      
+      if (url.pathname.startsWith('/problemset/problem/')) {
+        contestId = parseInt(parts[2], 10);
+        index = parts[3];
+      } else {
+        const cIdx = parts.findIndex(p => p === 'contest' || p === 'gym');
+        if (cIdx !== -1) {
+          contestId = parseInt(parts[cIdx + 1], 10);
+          index = parts[cIdx + 3];
+        }
+      }
+      
+      if (contestId && index) {
+        fetchAndInjectMeta(contestId, index);
+      }
     }
   } catch (err) {
     console.error('[CF Studio] ✗ Failed to get settings', err);

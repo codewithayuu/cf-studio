@@ -26,6 +26,21 @@ export function mountWorkspace(initialCode: string, settings: UserSettings) {
 
   window.addEventListener('resize', handleResize);
   window.addEventListener('keydown', handleKeydown);
+
+  document.body.classList.add('cf-studio-nav-collapsed');
+  
+  let lastScrollY = window.scrollY;
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('.second-level-menu') as HTMLElement;
+    if (!nav) return;
+    
+    if (window.scrollY > 150 && window.scrollY > lastScrollY) {
+      nav.classList.remove('expanded');
+    } else if (window.scrollY < lastScrollY) {
+      nav.classList.add('expanded');
+    }
+    lastScrollY = window.scrollY;
+  }, { passive: true });
 }
 
 function handleKeydown(e: KeyboardEvent) {
