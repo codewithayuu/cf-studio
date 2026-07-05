@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: piston
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - ./piston-data:/piston/packages
+    ports:
+      - "2000:2000"
+
+  exec-relay:
+    build:
+      context: ../services/exec-relay
+      dockerfile: Dockerfile
+    container_name: exec-relay
+    restart: unless-stopped
+    environment:
+      - PISTON_URL=http://piston:2000
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - piston

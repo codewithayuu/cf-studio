@@ -3,6 +3,7 @@ import type { Message, MessageResult, MessageType, MessageData, MessagePayload }
 import { saveProblemData, getProblemData } from '../lib/db';
 import { getSetting, setSetting, getAllSettings } from '../lib/storage';
 import { getProblemMeta } from './api';
+import { runCode } from './executor';
 
 type MessageHandler<T extends MessageType> = (
   payload: MessagePayload<T>,
@@ -27,6 +28,9 @@ const handlers: Partial<{ [T in MessageType]: MessageHandler<T> }> = {
   },
   getProblemMeta: async (payload) => {
     return await getProblemMeta(payload.contestId, payload.index);
+  },
+  runCode: async (payload) => {
+    return await runCode(payload);
   },
 };
 

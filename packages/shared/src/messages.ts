@@ -10,6 +10,19 @@ export type GetProblemMetaData = {
   tags: string[];
 } | null;
 
+export type RunCodePayload = {
+  code: string;
+  stdin: string;
+};
+
+export type RunCodeData = {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  wallTime: number;
+  peakMemory: number | null;
+};
+
 export type MessageTarget = 'background' | 'content' | 'editor-frame' | 'popup';
 
 export interface Message<T = unknown> {
@@ -76,6 +89,7 @@ export type MessageMap = {
   setSetting: { payload: SetSettingPayload; data: void };
   getAllSettings: { payload: Record<string, never>; data: GetAllSettingsData };
   getProblemMeta: { payload: GetProblemMetaPayload; data: GetProblemMetaData };
+  runCode: { payload: RunCodePayload; data: RunCodeData };
 };
 
 export type MessageType = keyof MessageMap;
